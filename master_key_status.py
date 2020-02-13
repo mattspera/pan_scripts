@@ -1,5 +1,6 @@
 import argparse
 import csv
+import sys
 from getpass import getpass
 
 import xmltodict
@@ -20,7 +21,20 @@ def main():
         print(e.message)
 
     cmd = 'show devices connected'
-    res = panorama.op(cmd, xml=True)
+    try:
+        res = panorama.op(cmd, xml=True)
+    except PanDeviceError as e:
+        if '403' in e.message:
+            print('Error: Invalid credentials or insufficient admin access rights.')
+        elif '400' in e.message:
+            print('Error: A required parameter is missing (password).')
+        else:
+            print(e.message)
+        sys.exit(1)
+
+    print('Authenticated to {}.'.format(args.panorama))
+    print('Generating master key status report on Panorama-connected firewalls...')
+
     devs_connected = xmltodict.parse(res)['response']['result']['devices']['entry']
 
     master_key_props_list = []
@@ -42,6 +56,8 @@ def main():
         writer_obj.writeheader()
         for dev_mkey_props in master_key_props_list:
             writer_obj.writerow(dev_mkey_props)
+
+    print('Done.')
 
 if __name__ == "__main__":
     main()

@@ -22,7 +22,17 @@ def main():
         print(e.message)
 
     cmd = 'show devices connected'
-    res = panorama.op(cmd, xml=True)
+    try:
+        res = panorama.op(cmd, xml=True)
+    except PanDeviceError as e:
+        if '403' in e.message:
+            print('Error: Invalid credentials or insufficient admin access rights.')
+        elif '400' in e.message:
+            print('Error: A required parameter is missing (password).')
+        else:
+            print(e.message)
+        sys.exit(1)
+
     devs_connected = xmltodict.parse(res)['response']['result']['devices']['entry']
 
     firewall = None
